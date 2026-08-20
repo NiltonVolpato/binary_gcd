@@ -38,29 +38,74 @@ pub fn gcd_binary(mut a: i64, mut b: i64) -> i64 {
         return a;
     }
 
-    let shift = a.trailing_zeros().min(b.trailing_zeros());
-    a >>= shift;
-    b >>= shift;
+    let mut az = a.trailing_zeros();
+    let bz = b.trailing_zeros();
+    let shift = az.min(bz);
+    b = b.wrapping_shr(bz);
 
     loop {
-        // Drop all factors of two from both operands, so neither is zero
-        // and both are odd.
-        a >>= a.trailing_zeros();
-        b >>= b.trailing_zeros();
-        // Keep a <= b so the difference below stays in [0, b).
-        if a > b {
-            let t = a;
-            a = b;
-            b = t;
-        }
-        let diff = b - a;
+        a = a.wrapping_shr(az);
+        let diff = a - b;
         if diff == 0 {
-            // a == b, both odd and stripped: that's the gcd.
-            return b << shift;
+            break;
         }
-        // b - a is even, so the next iteration's strip halves it.
-        b = a;
-        a = diff;
+        az = diff.trailing_zeros();
+        b = a.min(b);
+        // b is the running minimum. Once it reaches 1 the answer is
+        // settled (gcd(k, 1) == 1), so stop instead of halving the large
+        // operand all the way down to 1.
+        if b == 1 {
+            break;
+        }
+        a = diff.max(-diff);
+    }
+    b << shift
+}
+
+/// Hybrid GCD: like `gcd_binary`, except that whenever the quotient is big
+/// (bit lengths differ by 3 or more, so it is at least 4), one Euclid
+/// division replaces several binary steps and pays for itself. When the
+/// quotients are small (the Fibonacci worst case), it degenerates to plain
+/// binary GCD and never divides. Same lineage as Lehmer's GCD.
+pub fn gcd_hybrid(mut a: i64, mut b: i64) -> i64 {
+    if a == 0 {
+        return b;
+    }
+    if b == 0 {
+        return a;
+    }
+
+    // Factor out all common powers of two once.
+    let az = a.trailing_zeros();
+    let bz = b.trailing_zeros();
+    let shift = az.min(bz);
+    a = a.wrapping_shr(az);
+    b = b.wrapping_shr(bz);
+    // Invariant for the loop: both operands are odd and nonzero.
+
+    loop {
+        let (larger, smaller) = if a >= b { (a, b) } else { (b, a) };
+
+        // Bit lengths differ by 3 or more => the quotient is >= 4, so a
+        // single division beats that many cheap binary steps.
+        let bits = |n: i64| 64u32 - n.leading_zeros();
+        if bits(larger) - bits(smaller) >= 3 {
+            let rem = larger % smaller;
+            if rem == 0 {
+                return smaller << shift;
+            }
+            // Keep the odd invariant; smaller is odd and rem is nonzero.
+            a = smaller;
+            b = rem >> rem.trailing_zeros();
+        } else {
+            let diff = larger - smaller;
+            if diff == 0 {
+                return smaller << shift;
+            }
+            // diff is even (odd - odd); strip so both stay odd.
+            a = smaller;
+            b = diff >> diff.trailing_zeros();
+        }
     }
 }
 
@@ -111,6 +156,7 @@ mod tests {
     known_values_test!(iterative_known_values, gcd_iterative);
     known_values_test!(binary_recursive_known_values, gcd_binary_recursive);
     known_values_test!(binary_known_values, gcd_binary);
+    known_values_test!(hybrid_known_values, gcd_hybrid);
 
     /// Independent oracle (plain Euclid) for cross-checking random inputs.
     fn gcd_ref(mut a: i64, mut b: i64) -> i64 {
@@ -176,9 +222,11 @@ mod tests {
     small_sweep_test!(iterative_small, gcd_iterative);
     small_sweep_test!(binary_recursive_small, gcd_binary_recursive);
     small_sweep_test!(binary_small, gcd_binary);
+    small_sweep_test!(hybrid_small, gcd_hybrid);
 
     random_cross_check!(recursive_random, gcd_recursive);
     random_cross_check!(iterative_random, gcd_iterative);
     random_cross_check!(binary_recursive_random, gcd_binary_recursive);
     random_cross_check!(binary_random, gcd_binary);
+    random_cross_check!(hybrid_random, gcd_hybrid);
 }
