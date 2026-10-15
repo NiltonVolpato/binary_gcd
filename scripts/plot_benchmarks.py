@@ -21,7 +21,7 @@ CRITERION_DIR = Path("target/criterion")
 
 # The bench target emits gcd/{input}/{impl} per criterion directory, where
 # the input label may itself contain underscores (e.g. fib_worst_case).
-IMPLS = ["recursive", "iterative", "binary_recursive", "binary", "hybrid"]
+IMPLS = ["recursive", "iterative", "binary_recursive", "binary", "hybrid", "gcd_crate"]
 
 
 def split_bench_name(name):

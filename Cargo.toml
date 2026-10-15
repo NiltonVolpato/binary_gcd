@@ -7,6 +7,7 @@ edition = "2024"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+gcd = "2.3"
 
 [[bench]]
 name = "gcd_bench"

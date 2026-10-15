@@ -2,6 +2,7 @@ use binary_gcd::{
     gcd_binary, gcd_binary_recursive, gcd_hybrid, gcd_iterative, gcd_recursive,
 };
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use gcd::Gcd;
 
 /// Consecutive Fibonacci numbers F(91), F(92): coprime, and the classic
 /// worst case for the Euclidean algorithm (quotients are all 1).
@@ -27,6 +28,7 @@ fn gcd_benchmarks(c: &mut Criterion) {
         let binary_recursive = format!("gcd/{label}/binary_recursive");
         let binary = format!("gcd/{label}/binary");
         let hybrid = format!("gcd/{label}/hybrid");
+        let gcd_crate = format!("gcd/{label}/gcd_crate");
 
         c.bench_function(&recursive, |bench| {
             bench.iter(|| gcd_recursive(black_box(a), black_box(b)))
@@ -42,6 +44,9 @@ fn gcd_benchmarks(c: &mut Criterion) {
         });
         c.bench_function(&hybrid, |bench| {
             bench.iter(|| gcd_hybrid(black_box(a), black_box(b)))
+        });
+        c.bench_function(&gcd_crate, |bench| {
+            bench.iter(|| black_box(a as u64).gcd(black_box(b as u64)))
         });
     }
 }

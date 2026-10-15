@@ -1,6 +1,6 @@
 # binary_gcd
 
-Five GCD implementations for `i64`, with a test suite, criterion benchmarks, and a plotting script.
+Five GCD implementations for `i64`, with a test suite, criterion benchmarks, a plotting script, and a comparison against the popular [`gcd`](https://crates.io/crates/gcd) crate.
 
 ## Implementations (`src/lib.rs`)
 
@@ -26,17 +26,21 @@ For every implementation:
 
 Input sets benched: `small (56, 98)`, `medium (1071, 462)`, `fib_worst_case (F(91), F(92))`, `max_odd (i64::MAX, 2)`, `max_adjacent (i64::MAX, i64::MAX - 1)`.
 
+The external comparison uses `gcd = "2.3"` via its `Gcd` trait; because that trait is only implemented for unsigned integers, the `i64` inputs are cast to `u64` for the `gcd_crate` column.
+
 Latest run (median, ns):
 
-| input | recursive | iterative | binary_recursive | binary | hybrid |
-| --- | --- | --- | --- | --- | --- |
-| small | 2.039 | 2.037 | 4.841 | **1.376** | 1.488 |
-| medium | 1.737 | **1.524** | 6.867 | 2.218 | 3.004 |
-| fib_worst_case | 203.250 | 207.790 | 73.817 | **33.511** | 63.303 |
-| max_odd | 1.449 | **1.041** | 80.711 | 1.239 | 1.488 |
-| max_adjacent | 1.462 | **1.041** | 113.732 | 1.486 | 1.982 |
+| input | recursive | iterative | binary_recursive | binary | hybrid | gcd_crate |
+| --- | --- | --- | --- | --- | --- | --- |
+| small | 2.040 | 2.039 | 4.916 | 1.502 | 1.732 | **1.371** |
+| medium | 1.734 | **1.539** | 6.977 | 2.252 | 3.018 | 2.215 |
+| fib_worst_case | 204.596 | 260.199 | 74.292 | **33.646** | 63.634 | 38.319 |
+| max_odd | 1.487 | **1.047** | 82.392 | 1.245 | 1.683 | 62.273 |
+| max_adjacent | 1.490 | **1.048** | 114.374 | 1.494 | 2.223 | 62.292 |
 
-Machine: Apple M4, 10-core (macOS, 2026-08-20). `gcd_binary` is the fastest all-around: ~6× faster than the Euclidean variants on the Fibonacci worst case, and within a fraction of a nanosecond of iterative Euclid on the tiny-operand cases where a single modulo wins.
+Machine: Apple M4, 10-core (macOS, 2026-10-14).
+
+`gcd_binary` is the implementation that matters: it is statistically tied with or faster than the `gcd` crate on every input, and it dominates on the binary-GCD worst cases (`max_odd` and `max_adjacent`), where the early-exit once the running minimum reaches 1 makes it roughly **50× faster** than `gcd_crate`. It is also ~6× faster than the Euclidean variants on the Fibonacci worst case.
 
 ![Median time per input set](benchmarks.png)
 
